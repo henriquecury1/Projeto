@@ -1,0 +1,10 @@
+INSERT OR REPLACE INTO candidatos (numero, nome, cargo) VALUES (10, 'Fulano da Silva', 'Técnico de Enfermagem');
+INSERT OR REPLACE INTO candidatos (numero, nome, cargo) VALUES (07, 'Henrique Cury', 'Estágario de TI');
+INSERT OR REPLACE INTO candidatos (numero, nome, cargo) VALUES (10, 'Lucas Lopes', 'Bonobo');
+INSERT OR REPLACE INTO candidatos (numero, nome, cargo) VALUES (10, 'Fulano da Silva', 'Técnico de Enfermagem');
+INSERT OR REPLACE INTO candidatos (numero, nome, cargo) VALUES (10, 'Fulano da Silva', 'Técnico de Enfermagem');
+INSERT OR REPLACE INTO candidatos (numero, nome, cargo) VALUES (10, 'Fulano da Silva', 'Técnico de Enfermagem');
+INSERT OR REPLACE INTO candidatos (numero, nome, cargo) VALUES (10, 'Fulano da Silva', 'Técnico de Enfermagem');
+INSERT OR REPLACE INTO candidatos (numero, nome, cargo) VALUES (10, 'Fulano da Silva', 'Técnico de Enfermagem');
+INSERT OR REPLACE INTO candidatos (numero, nome, cargo) VALUES (10, 'Fulano da Silva', 'Técnico de Enfermagem');
+INSERT OR REPLACE INTO candidatos (numero, nome, cargo) VALUES (10, 'Fulano da Silva', 'Técnico de Enfermagem');

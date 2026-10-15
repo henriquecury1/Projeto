@@ -15,7 +15,7 @@ def consultar(sql, parametros=()):
         conexao.execute(sql, parametros).fetchone()
     finally:
         conexao.close()
-
+#
 class Urna(BaseHTTPRequestHandler): #Funcionaria como uma API
 
     def responder_json(self, codigo, dados):

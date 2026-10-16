@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Urna CIPA</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #e9ecef; margin: 0;
+         display: flex; justify-content: center; align-items: center; height: 100vh; }
+  .urna { background: white; width: 640px; padding: 32px; border-radius: 12px;
+          box-shadow: 0 4px 16px rgba(0,0,0,.15); }
+  h1 { margin-top: 0; text-align: center; }
+  .tela { display: none; }
+  .ativa { display: block; }
+  .linha { font-size: 20px; margin: 6px 0; }
+  .rotulo { color: #666; display: inline-block; width: 110px; }
+  .ok   { color: #1b7f3b; font-weight: bold; font-size: 22px; }
+  .erro { color: #c0392b; font-weight: bold; font-size: 22px; }
+  #numero { font-size: 40px; width: 140px; text-align: center; letter-spacing: 8px; }
+  #candidato { font-size: 22px; min-height: 60px; margin: 16px 0; }
+  .botoes { display: flex; gap: 12px; margin-top: 16px; }
+  .botoes button { flex: 1; font-size: 18px; padding: 14px; border: none;
+                   border-radius: 6px; cursor: pointer; font-weight: bold; }
+  #btnBranco    { background: #f8f9fa; border: 1px solid #999; }
+  #btnCorrigir  { background: #f39c12; color: white; }
+  #btnConfirmar { background: #27ae60; color: white; }
+  #fim { text-align: center; font-size: 72px; font-weight: bold; padding: 40px 0; }
+  #cracha { font-size: 28px; width: 320px; padding: 10px; text-align: center; }
+  #btnEntrar { font-size: 20px; padding: 10px 24px; margin-left: 8px; border: none;
+               border-radius: 6px; background: #2c7be5; color: white; cursor: pointer; }
+  .entrada { display: flex; justify-content: center; margin-top: 16px; }
+</style>
+</head>
+<body>
+<div class="urna">
+  <h1>Eleição CIPA</h1>
+
+  <!-- TELA 1: aguardando crachá -->
+  <div id="telaCracha" class="tela ativa">
+    <p class="linha" style="text-align:center">Passe seu crachá no leitor ou digite sua matrícula</p>
+    <div class="entrada">
+      <input id="cracha" autocomplete="off" inputmode="numeric" placeholder="Matrícula">
+      <button id="btnEntrar">ENTRAR</button>
+    </div>
+    <p id="msgCracha" class="erro" style="text-align:center"></p>
+  </div>
+
+  <!-- TELA 2: dados do eleitor + voto -->
+  <div id="telaVoto" class="tela">
+    <p class="linha"><span class="rotulo">Matrícula:</span> <span id="eMatricula"></span></p>
+    <p class="linha"><span class="rotulo">Nome:</span> <span id="eNome"></span></p>
+    <p class="linha"><span class="rotulo">Cargo:</span> <span id="eCargo"></span></p>
+    <p class="linha"><span class="rotulo">Setor:</span> <span id="eSetor"></span></p>
+    <p id="eStatus"></p>
+
+    <div id="areaVoto">
+      <p class="linha">Digite o número do candidato:</p>
+      <input id="numero" maxlength="2" inputmode="numeric" autocomplete="off">
+      <div id="candidato"></div>
+      <div class="botoes">
+        <button id="btnBranco">BRANCO</button>
+        <button id="btnCorrigir">CORRIGIR</button>
+        <button id="btnConfirmar">CONFIRMAR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TELA 3: fim -->
+  <div id="telaFim" class="tela">
+    <div id="fim">FIM</div>
+  </div>
+</div>
+
+<script>
+let eleitorAtual = null;   // matrícula de quem está votando
+let numeroAtual = null;    // número digitado (null = nada / branco)
+let timerInatividade = null;
+
+const $ = (id) => document.getElementById(id);
+
+function mostrarTela(id) {
+  for (const t of document.querySelectorAll('.tela')) t.classList.remove('ativa');
+  $(id).classList.add('ativa');
+}
+
+function voltarInicio() {
+  eleitorAtual = null;
+  numeroAtual = null;
+  clearTimeout(timerInatividade);
+  $('cracha').value = '';
+  $('numero').value = '';
+  $('candidato').textContent = '';
+  mostrarTela('telaCracha');
+  $('cracha').focus();
+}
+
+// Se ninguém mexer por 60s, volta ao início (evita a próxima pessoa votar no lugar)
+function reiniciarTimer() {
+  clearTimeout(timerInatividade);
+  timerInatividade = setTimeout(voltarInicio, 60000);
+}
+
+// ---------- 1. Leitura do crachá ----------
+async function identificar() {
+  const codigo = $('cracha').value.trim();
+  $('cracha').value = '';
+  if (!codigo) return;
+
+  const resp = await fetch('/api/eleitor/' + encodeURIComponent(codigo));
+  const d = await resp.json();
+
+  if (!resp.ok) {
+    $('msgCracha').textContent = d.erro;
+    setTimeout(() => $('msgCracha').textContent = '', 4000);
+    return;
+  }
+
+  $('eMatricula').textContent = d.matricula;
+  $('eNome').textContent = d.nome;
+  $('eCargo').textContent = d.cargo;
+  $('eSetor').textContent = d.setor;
+  mostrarTela('telaVoto');
+  reiniciarTimer();
+
+  if (d.pode_votar) {
+    eleitorAtual = d.matricula;
+    $('eStatus').textContent = '✅ Liberado para votar';
+    $('eStatus').className = 'ok';
+    $('areaVoto').style.display = 'block';
+    $('numero').focus();
+  } else {
+    $('eStatus').textContent = '❌ Este colaborador já votou';
+    $('eStatus').className = 'erro';
+    $('areaVoto').style.display = 'none';
+    setTimeout(voltarInicio, 4000);
+  }
+}
+
+$('cracha').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') identificar();   // leitor de crachá ou Enter no teclado
+});
+$('btnEntrar').addEventListener('click', identificar);   // clique no botão
+
+// ---------- 2. Digitação do número ----------
+$('numero').addEventListener('input', async () => {
+  reiniciarTimer();
+  const num = $('numero').value.replace(/\D/g, '');   // só dígitos
+  $('numero').value = num;
+  $('candidato').textContent = '';
+  numeroAtual = null;
+  if (num.length < 2) return;
+
+  numeroAtual = num;
+  const resp = await fetch('/api/candidato/' + num);
+  const d = await resp.json();
+  $('candidato').textContent = resp.ok ? + '-' + (d.cargo || '') : 'NUMERO ERRADO - VOTO NULO';
+});
+
+// ---------- 3. Botões ----------
+$('btnCorrigir').addEventListener('click', () => {
+  $('numero').value = '';
+  $('candidato').textContent = '';
+  numeroAtual = null;
+  $('numero').focus();
+});
+
+$('btnBranco').addEventListener('click', () => {
+  $('numero').value = '';
+  numeroAtual = null;
+  $('candidato').textContent = 'VOTO EM BRANCO — clique em CONFIRMAR';
+  $('numero').focus();
+});
+
+$('btnConfirmar').addEventListener('click', async () => {
+  if (!eleitorAtual) return;
+  const branco = $('candidato').textContent.startsWith('VOTO EM BRANCO');
+  if (!numeroAtual && !branco) {
+    alert('Digite o número do candidato ou escolha BRANCO.');
+    return;
+  }
+
+  const resp = await fetch('/api/votar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ matricula: eleitorAtual, numero: branco ? null : numeroAtual })
+  });
+  const d = await resp.json();
+
+  if (!resp.ok) {
+    alert(d.erro);
+    voltarInicio();
+    return;
+  }
+  mostrarTela('telaFim');
+  setTimeout(voltarInicio, 4000);
+});
+
+// Mantém o foco no campo do crachá quando estiver na tela inicial
+setInterval(() => {
+  if ($('telaCracha').classList.contains('ativa')) $('cracha').focus();
+}, 500);
+
+voltarInicio();
+</script>
+</body>
+</html>
